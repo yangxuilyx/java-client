@@ -73,7 +73,7 @@ public class HubConnection extends Connection {
     public void onReceived(JsonElement message) {
         super.onReceived(message);
 
-        log("Processing message", LogLevel.Information);
+        log("Processing message"+message.toString(), LogLevel.Information);
         if (getState() == ConnectionState.Connected) {
             if (message.isJsonObject() && message.getAsJsonObject().has("I")) {
                 log("Getting HubResult from message", LogLevel.Verbose);

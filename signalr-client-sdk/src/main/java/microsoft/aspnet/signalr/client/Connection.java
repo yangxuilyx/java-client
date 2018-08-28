@@ -15,11 +15,14 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
+import microsoft.aspnet.signalr.client.http.HttpConnectionFuture;
 import microsoft.aspnet.signalr.client.http.Request;
+import microsoft.aspnet.signalr.client.http.Response;
 import microsoft.aspnet.signalr.client.transport.AutomaticTransport;
 import microsoft.aspnet.signalr.client.transport.ClientTransport;
 import microsoft.aspnet.signalr.client.transport.ConnectionType;
 import microsoft.aspnet.signalr.client.transport.DataResultCallback;
+import microsoft.aspnet.signalr.client.transport.NegotiationException;
 import microsoft.aspnet.signalr.client.transport.NegotiationResponse;
 import microsoft.aspnet.signalr.client.transport.TransportHelper;
 import microsoft.aspnet.signalr.client.Logger;
@@ -29,7 +32,7 @@ import microsoft.aspnet.signalr.client.Logger;
  */
 public class Connection implements ConnectionBase {
 
-    public static final Version PROTOCOL_VERSION = new Version("1.3");
+    public static final Version PROTOCOL_VERSION = new Version("1.5");
 
     private Logger mLogger;
 
@@ -226,6 +229,8 @@ public class Connection implements ConnectionBase {
     @Override
     public void connected(Runnable handler) {
         mOnConnected = handler;
+
+
     }
 
     @Override
@@ -588,6 +593,7 @@ public class Connection implements ConnectionBase {
      * Triggers the Connected event
      */
     protected void onConnected() {
+
         if (mOnConnected != null) {
             mOnConnected.run();
         }
