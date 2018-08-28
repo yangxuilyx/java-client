@@ -137,6 +137,8 @@ public class WebsocketTransport extends HttpClientTransport {
             @Override
             public void onError(Exception e) {
                 mWebSocketClient.close();
+                connection.disconnect();
+
                 log("Error:"+e.getMessage(),LogLevel.Information);
             }
 
