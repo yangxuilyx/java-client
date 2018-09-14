@@ -6,6 +6,8 @@ See License.txt in the project root for license information.
 
 package microsoft.aspnet.signalr.client;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,9 +17,11 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
+import microsoft.aspnet.signalr.client.http.HttpConnection;
 import microsoft.aspnet.signalr.client.http.HttpConnectionFuture;
 import microsoft.aspnet.signalr.client.http.Request;
 import microsoft.aspnet.signalr.client.http.Response;
+import microsoft.aspnet.signalr.client.http.java.JavaHttpConnection;
 import microsoft.aspnet.signalr.client.transport.AutomaticTransport;
 import microsoft.aspnet.signalr.client.transport.ClientTransport;
 import microsoft.aspnet.signalr.client.transport.ConnectionType;
@@ -92,9 +96,8 @@ public class Connection implements ConnectionBase {
 
     /**
      * Initializes the connection with an URL
-     * 
-     * @param url
-     *            The connection URL
+     *
+     * @param url The connection URL
      */
     public Connection(String url) {
         this(url, (String) null);
@@ -102,11 +105,9 @@ public class Connection implements ConnectionBase {
 
     /**
      * Initializes the connection with an URL and a query string
-     * 
-     * @param url
-     *            The connection URL
-     * @param queryString
-     *            The connection query string
+     *
+     * @param url         The connection URL
+     * @param queryString The connection query string
      */
     public Connection(String url, String queryString) {
         this(url, queryString, new NullLogger());
@@ -114,11 +115,9 @@ public class Connection implements ConnectionBase {
 
     /**
      * Initializes the connection with an URL and a logger
-     * 
-     * @param url
-     *            The connection URL
-     * @param logger
-     *            The connection logger
+     *
+     * @param url    The connection URL
+     * @param logger The connection logger
      */
     public Connection(String url, Logger logger) {
         this(url, null, logger);
@@ -126,13 +125,10 @@ public class Connection implements ConnectionBase {
 
     /**
      * Initializes the connection with an URL, a query string and a Logger
-     * 
-     * @param url
-     *            The connection URL
-     * @param queryString
-     *            The connection query string
-     * @param logger
-     *            The connection logger
+     *
+     * @param url         The connection URL
+     * @param queryString The connection query string
+     * @param logger      The connection logger
      */
     public Connection(String url, String queryString, Logger logger) {
         if (url == null) {
@@ -229,8 +225,6 @@ public class Connection implements ConnectionBase {
     @Override
     public void connected(Runnable handler) {
         mOnConnected = handler;
-
-
     }
 
     @Override
@@ -260,7 +254,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Starts the connection using the best available transport
-     * 
+     *
      * @return A Future for the operation
      */
     public SignalRFuture<Void> start() {
@@ -269,11 +263,10 @@ public class Connection implements ConnectionBase {
 
     /**
      * Sends a serialized object
-     * 
-     * @param object
-     *            The object to send. If the object is a JsonElement, its string
-     *            representation is sent. Otherwise, the object is serialized to
-     *            Json.
+     *
+     * @param object The object to send. If the object is a JsonElement, its string
+     *               representation is sent. Otherwise, the object is serialized to
+     *               Json.
      * @return A Future for the operation
      */
     public SignalRFuture<Void> send(Object object) {
@@ -315,11 +308,9 @@ public class Connection implements ConnectionBase {
 
     /**
      * Handles a Future error, invoking the connection onError event
-     * 
-     * @param future
-     *            The future to handle
-     * @param mustCleanCurrentConnection
-     *            True if the connection must be cleaned when an error happens
+     *
+     * @param future                     The future to handle
+     * @param mustCleanCurrentConnection True if the connection must be cleaned when an error happens
      */
     private void handleFutureError(SignalRFuture<?> future, final boolean mustCleanCurrentConnection) {
         final Connection that = this;
@@ -358,7 +349,7 @@ public class Connection implements ConnectionBase {
                     public void run(NegotiationResponse negotiationResponse) throws Exception {
                         log("Negotiation completed", LogLevel.Information);
                         if (!verifyProtocolVersion(negotiationResponse.getProtocolVersion())) {
-                            Exception err = new InvalidProtocolVersionException(negotiationResponse.getProtocolVersion()); 
+                            Exception err = new InvalidProtocolVersionException(negotiationResponse.getProtocolVersion());
                             onError(err, true);
                             mConnectionFuture.triggerError(err);
                             return;
@@ -378,15 +369,15 @@ public class Connection implements ConnectionBase {
                         startTransport(keepAliveData, false);
                     }
                 });
-                
+
                 negotiationFuture.onError(new ErrorCallback() {
-                    
+
                     @Override
                     public void onError(Throwable error) {
                         mConnectionFuture.triggerError(error);
                     }
                 });
-                
+
             } catch (Exception e) {
                 onError(e, true);
             }
@@ -400,11 +391,9 @@ public class Connection implements ConnectionBase {
 
     /**
      * Changes the connection state
-     * 
-     * @param oldState
-     *            The expected old state
-     * @param newState
-     *            The new state
+     *
+     * @param oldState The expected old state
+     * @param newState The new state
      * @return True, if the state was changed
      */
     private boolean changeState(ConnectionState oldState, ConnectionState newState) {
@@ -433,6 +422,8 @@ public class Connection implements ConnectionBase {
     @Override
     public void setCredentials(Credentials credentials) {
         mCredentials = credentials;
+
+        this.mHeaders.putAll(credentials.GetCredentialsHeaders());
     }
 
     @Override
@@ -525,7 +516,7 @@ public class Connection implements ConnectionBase {
                     onError(e, false);
                 }
             }
-            
+
             if (mHeartbeatMonitor != null) {
                 log("Stopping Heartbeat monitor", LogLevel.Verbose);
                 mHeartbeatMonitor.stop();
@@ -601,9 +592,8 @@ public class Connection implements ConnectionBase {
 
     /**
      * Verifies the protocol version
-     * 
-     * @param versionString
-     *            String representing a Version
+     *
+     * @param versionString String representing a Version
      * @return True if the version is supported.
      */
     private static boolean verifyProtocolVersion(String versionString) {
@@ -623,11 +613,9 @@ public class Connection implements ConnectionBase {
 
     /**
      * Starts the transport
-     * 
-     * @param keepAliveData
-     *            Keep Alive data for heartbeat monitor
-     * @param isReconnecting
-     *            True if is reconnecting
+     *
+     * @param keepAliveData  Keep Alive data for heartbeat monitor
+     * @param isReconnecting True if is reconnecting
      */
     private void startTransport(KeepAliveData keepAliveData, final boolean isReconnecting) {
         synchronized (mStartLock) {
@@ -688,13 +676,13 @@ public class Connection implements ConnectionBase {
 
             mConnectionFuture.setFuture(future);
             future.onError(new ErrorCallback() {
-                
+
                 @Override
                 public void onError(Throwable error) {
                     mConnectionFuture.triggerError(error);
                 }
             });
-            
+
             mKeepAliveData = keepAliveData;
 
             try {
@@ -705,23 +693,50 @@ public class Connection implements ConnectionBase {
                         synchronized (mStartLock) {
                             log("Entered startLock after transport was started", LogLevel.Verbose);
                             log("Current state: " + mState, LogLevel.Verbose);
-                            if (changeState(ConnectionState.Reconnecting, ConnectionState.Connected)) {
 
-                                log("Starting Heartbeat monitor", LogLevel.Verbose);
-                                mHeartbeatMonitor.start(mKeepAliveData, that);
-                                
-                                log("Reconnected", LogLevel.Information);
-                                onReconnected();
+                            mHeartbeatMonitor.start(mKeepAliveData, that);
 
-                            } else if (changeState(ConnectionState.Connecting, ConnectionState.Connected)) {
+                            String url = null;
+                            url = getUrl() + "start" + TransportHelper.getStartQueryString(Connection.this);
 
-                                log("Starting Heartbeat monitor", LogLevel.Verbose);
-                                mHeartbeatMonitor.start(mKeepAliveData, that);
-                                
-                                log("Connected", LogLevel.Information);
-                                onConnected();
-                                mConnectionFuture.setResult(null);
-                            }
+                            Request get = new Request(Constants.HTTP_GET);
+                            get.setUrl(url);
+                            get.setVerb(Constants.HTTP_GET);
+
+                            prepareRequest(get);
+
+                            HttpConnection mHttpConnection = Platform.createHttpConnection(mLogger);
+
+                            mHttpConnection.execute(get, new HttpConnectionFuture.ResponseCallback() {
+                                @Override
+                                public void onResponse(Response response) throws Exception {
+                                    mLogger.log(response.readToEnd(), LogLevel.Critical);
+
+                                    // 原始代码
+                                    if (changeState(ConnectionState.Reconnecting, ConnectionState.Connected)) {
+
+                                        log("Starting Heartbeat monitor", LogLevel.Verbose);
+                                        mHeartbeatMonitor.start(mKeepAliveData, that);
+
+                                        log("Reconnected", LogLevel.Information);
+                                        onReconnected();
+
+                                    } else if (changeState(ConnectionState.Connecting, ConnectionState.Connected)) {
+
+                                        log("Starting Heartbeat monitor", LogLevel.Verbose);
+                                        mHeartbeatMonitor.start(mKeepAliveData, that);
+
+                                        log("Connected", LogLevel.Information);
+                                        onConnected();
+                                        mConnectionFuture.setResult(null);
+                                    }
+
+                                    // 原始代码end
+
+                                }
+                            });
+
+
                         }
                     }
                 });
@@ -733,9 +748,8 @@ public class Connection implements ConnectionBase {
 
     /**
      * Parses the received data and triggers the OnReceived event
-     * 
-     * @param data
-     *            The received data
+     *
+     * @param data The received data
      */
     private void processReceivedData(String data) {
         if (mHeartbeatMonitor != null) {
@@ -756,13 +770,11 @@ public class Connection implements ConnectionBase {
 
     /**
      * Processes a received message
-     * 
-     * @param message
-     *            The message to process
+     *
+     * @param message The message to process
      * @return The processed message
-     * @throws Exception
-     *             An exception could be thrown if there an error while
-     *             processing the message
+     * @throws Exception An exception could be thrown if there an error while
+     *                   processing the message
      */
     protected JsonElement processMessage(JsonElement message) throws Exception {
         return message;
